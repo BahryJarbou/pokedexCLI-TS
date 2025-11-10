@@ -34,7 +34,7 @@ export class PokeAPI {
   }
 
   async fetchLocation(locationName: string): Promise<Location> {
-    const url = `${PokeAPI.baseURL}/local-area/${locationName}`;
+    const url = `${PokeAPI.baseURL}/location-area/${locationName}`;
     try {
       const cacheEntry = this.cache.get<Location>(url);
       if (cacheEntry) {
@@ -42,12 +42,35 @@ export class PokeAPI {
       }
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`${response.status} ${response.statusText}`);
+        throw new Error(`${response.status}: ${response.statusText}`);
       }
       const location = await response.json();
+      this.cache.add(url, location);
       return location;
     } catch (error) {
-      throw new Error(`Error fetching locations: ${(error as Error).message}`);
+      throw new Error(`Error fetching location: ${(error as Error).message}`);
+    }
+  }
+  async fetchPokemoneNames(locationName: string) {
+    const url = `${PokeAPI.baseURL}/location-area/${locationName}`;
+    try {
+      const cacheEntry = this.cache.get<Location>(url);
+      if (cacheEntry) {
+        const pokemons = cacheEntry.pokemon_encounters.map(
+          (encounter) => encounter.pokemon.name
+        );
+        return pokemons;
+      }
+      const location = await this.fetchLocation(locationName);
+      this.cache.add(url, location);
+      const pokemons = location.pokemon_encounters.map(
+        (encounter) => encounter.pokemon.name
+      );
+      return pokemons;
+    } catch (error) {
+      throw new Error(
+        `Error fetching pokemon names: ${(error as Error).message}`
+      );
     }
   }
 }
